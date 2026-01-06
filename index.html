@@ -1,0 +1,139 @@
+﻿<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Cine-Log 2000</title>
+    <style>
+        body { background-color: #008080; font-family: "Times New Roman", serif; margin: 20px; }
+        #app-container { width: 95%; max-width: 800px; margin: 0 auto; background: #c0c0c0; border: 4px outset #ffffff; padding: 15px; }
+        header { background: linear-gradient(90deg, #000080, #0808ff); color: white; padding: 10px; font-weight: bold; margin-bottom: 15px; border: 2px inset #fff; }
+        .box { border: 2px inset #ffffff; background: #c0c0c0; padding: 15px; margin-bottom: 15px; }
+        table { width: 100%; border-collapse: collapse; background: white; margin-top: 10px; }
+        th, td { border: 1px solid #808080; padding: 8px; text-align: left; font-family: "Courier New", monospace; }
+        input, select, button { padding: 5px; margin: 5px 0; border: 2px outset #fff; }
+        button { cursor: pointer; font-weight: bold; background: #c0c0c0; }
+        button:active { border: 2px inset #fff; }
+    </style>
+</head>
+<body>
+
+
+<div id="app-container">
+    <header> 🎞️ CINE-LOG 2000: BACK TO BASICS </header>
+
+
+    <div id="auth-section" class="box">
+        <h3>User Authentication</h3>
+        Email: <input type="email" id="email"><br>
+        Pass: <input type="password" id="password"><br>
+        <button onclick="login()">LOGIN</button>
+        <button onclick="signup()">CREATE ACCOUNT</button>
+    </div>
+
+
+    <div id="main-content" style="display:none;">
+        <div class="box">
+            <button onclick="logout()" style="float:right">LOGOUT</button>
+            <strong>LOG NEW MOVIE:</strong><br>
+            <input type="date" id="movie-date">
+            <input type="text" id="movie-title" placeholder="Movie Title">
+            <select id="movie-rating">
+                <option value="5">⭐⭐⭐⭐⭐</option>
+                <option value="4">⭐⭐⭐⭐</option>
+                <option value="3">⭐⭐⭐</option>
+                <option value="2">⭐⭐</option>
+                <option value="1">⭐</option>
+            </select>
+            <button onclick="saveMovie()">SAVE TO VAULT</button>
+        </div>
+
+
+        <table>
+            <thead>
+                <tr>
+                    <th>DATE</th>
+                    <th>TITLE</th>
+                    <th>RATING</th>
+                </tr>
+            </thead>
+            <tbody id="table-body"></tbody>
+        </table>
+    </div>
+</div>
+
+
+<script type="module">
+  import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
+  import { getAuth, signInWithEmailAndPassword, createUserWithEmailAndPassword, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
+  import { getFirestore, collection, addDoc, query, where, onSnapshot } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+
+
+  const firebaseConfig = {
+    apiKey: "AIzaSyARcsf5jtDzQ-uhcJ3V2nMIVl9JlArWYf8",
+    authDomain: "cinelog-7552d.firebaseapp.com",
+    projectId: "cinelog-7552d",
+    storageBucket: "cinelog-7552d.firebasestorage.app",
+    messagingSenderId: "180492873924",
+    appId: "1:180492873924:web:d059c63c0aca97b327d991",
+    measurementId: "G-JT3NPFZ5RH"
+  };
+
+
+  const app = initializeApp(firebaseConfig);
+  const auth = getAuth(app);
+  const db = getFirestore(app);
+
+
+  // AUTH FUNCTIONS
+  window.login = () => {
+    signInWithEmailAndPassword(auth, email.value, password.value).catch(e => alert(e.message));
+  };
+
+
+  window.signup = () => {
+    createUserWithEmailAndPassword(auth, email.value, password.value).catch(e => alert(e.message));
+  };
+
+
+  window.logout = () => signOut(auth);
+
+
+  // SAVE MOVIE
+  window.saveMovie = () => {
+    const title = document.getElementById('movie-title').value;
+    const date = document.getElementById('movie-date').value;
+    const rating = document.getElementById('movie-rating').value;
+    
+    if(title && date) {
+        addDoc(collection(db, "movies"), {
+            uid: auth.currentUser.uid,
+            title, date, rating: parseInt(rating)
+        }).then(() => { document.getElementById('movie-title').value = ""; });
+    }
+  };
+
+
+  // OBSERVE LOGIN
+  onAuthStateChanged(auth, user => {
+    if (user) {
+        document.getElementById('auth-section').style.display = 'none';
+        document.getElementById('main-content').style.display = 'block';
+        
+        // SIMPLE LOAD (No ordering yet to avoid errors)
+        const q = query(collection(db, "movies"), where("uid", "==", user.uid));
+        onSnapshot(q, (snapshot) => {
+            const tbody = document.getElementById('table-body');
+            tbody.innerHTML = "";
+            snapshot.forEach(doc => {
+                const m = doc.data();
+                tbody.innerHTML += `<tr><td>${m.date}</td><td>${m.title}</td><td>${"⭐".repeat(m.rating)}</td></tr>`;
+            });
+        });
+    } else {
+        document.getElementById('auth-section').style.display = 'block';
+        document.getElementById('main-content').style.display = 'none';
+    }
+  });
+</script>
+</body>
+</html>
