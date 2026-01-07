@@ -1,0 +1,262 @@
+﻿<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Cine-Log 2000 - 365 Challenge</title>
+    <style>
+        /* NOIR FILTER CLASS */
+        .noir-mode { 
+            filter: grayscale(1) sepia(0.2) contrast(1.2); 
+        }
+        .noir-mode #app-container {
+            box-shadow: 10px 10px 0px rgba(255,255,255,0.1) !important;
+        }
+        /* EXTRA NOIR JITTER */
+        .noir-mode::before {
+            content: ""; position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(255,255,255,0.02); pointer-events: none; z-index: 10005;
+            animation: flicker 0.1s infinite;
+        }
+        @keyframes flicker { 0% { opacity: 0.1; } 50% { opacity: 0.2; } 100% { opacity: 0.1; } }
+
+
+        /* CORE THEME */
+        body { background-color: #000; font-family: "Times New Roman", serif; margin: 10px; padding: 0; color: #000; overflow-x: hidden; transition: filter 0.5s ease; }
+        #app-container { width: 98%; max-width: 900px; margin: 0 auto; background: #c0c0c0; border: 4px outset #fff; padding: 10px; box-sizing: border-box; box-shadow: 10px 10px 0px rgba(0,255,0,0.1); position: relative; min-height: 400px; }
+        header { 
+            background: linear-gradient(90deg, #000080, #0808ff); color: white; padding: 8px; 
+            font-weight: bold; border: 2px inset #fff; margin-bottom: 10px; 
+            text-shadow: 2px 2px #000; font-size: 1.2em; display: flex; justify-content: space-between; align-items: center;
+        }
+        
+        .toggle-label { font-size: 0.6em; display: flex; align-items: center; gap: 5px; cursor: pointer; background: rgba(0,0,0,0.3); padding: 4px 8px; border-radius: 4px; }
+
+
+        .box { border: 2px inset #fff; background: #c0c0c0; padding: 10px; margin-bottom: 10px; box-sizing: border-box; }
+        .marquee-box { background: #000; color: #0f0; font-family: 'Courier New', monospace; padding: 5px; border: 1px solid #fff; margin-bottom: 10px; min-height: 1.2em; overflow: hidden; white-space: nowrap; font-size: 0.9em; }
+
+
+        /* VHS LOADING STAGE */
+        #loading-stage { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: #000; z-index: 9999; align-items: center; justify-content: center; overflow: hidden; }
+        #vhs-static { position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: repeating-radial-gradient(#000 0 0.0001%, #fff 0 0.0002%) 50% 0/2500px 2500px; opacity: 0.12; animation: static-noise .2s infinite alternate; pointer-events: none; z-index: 10003; }
+        @keyframes static-noise { 100% { background-position: 50% 0, 51% 51%; } }
+        #scanline { width: 100%; height: 60px; background: rgba(255,255,255,0.05); position: absolute; top: -100px; left: 0; z-index: 10001; animation: scan 2.5s linear infinite; }
+        @keyframes scan { 0% { top: -100px; } 100% { top: 100%; } }
+        #loading-screen { background: #000; color: #0f0; font-family: 'Courier New', monospace; padding: 25px; border: 4px double #0f0; width: 85%; max-width: 400px; position: relative; z-index: 10002; text-shadow: 1px 1px #f00, -1px -1px #00f; }
+
+
+        #progress-container { width: 100%; border: 2px solid #fff; height: 20px; margin-top: 20px; background: #000044; position: relative; }
+        #progress-bar { width: 0%; height: 100%; background: #00ff00; box-shadow: inset -4px 0px 0px #008800; }
+
+
+        .ticket-btn { background: #ff5555; color: white; border: 2px solid #a00; font-weight: bold; padding: 5px 15px; cursor: pointer; display: block; width: 110px; margin-left: auto; clip-path: polygon(10% 0, 90% 0, 100% 20%, 100% 80%, 90% 100%, 10% 100%, 0 80%, 0 20%); margin-bottom: 5px; text-align: center; }
+        .small-export { background: #ffcc00; font-size: 0.7em; padding: 2px 8px; border: 2px outset #fff; cursor: pointer; display: block; width: 80px; margin-left: auto; text-align: center; }
+
+
+        #pixel-progress-bg { width: 100%; height: 14px; background: #333; border: 2px solid #fff; margin-top: 5px; box-sizing: border-box; }
+        #pixel-progress-fill { width: 0%; height: 100%; background: #00ff00; box-shadow: inset -3px 0px 0px #008800; }
+
+
+        table { width: 100%; border-collapse: collapse; background: white; border: 2px inset #808080; table-layout: fixed; }
+        th { background: #808080; color: white; padding: 4px; font-size: 0.7em; border: 1px solid #ccc; }
+        td { border: 1px solid #808080; padding: 4px; font-family: "Courier New", monospace; font-size: 0.8em; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+        
+        .popcorn { position: fixed; font-size: 28px; z-index: 9999; pointer-events: none; animation: popcorn-physics 2.2s ease-out forwards; }
+        @keyframes popcorn-physics {
+            0% { transform: translate(-50%, -50%) scale(0); opacity: 1; }
+            20% { transform: translate(var(--tx-mid), var(--ty-up)) scale(1.1); opacity: 1; }
+            100% { transform: translate(var(--tx-final), 110vh) rotate(var(--tr)); opacity: 0; }
+        }
+        .cursor { animation: blink 1s infinite; }
+        @keyframes blink { 50% { opacity: 0; } }
+    </style>
+</head>
+<body>
+
+
+<div id="loading-stage">
+    <div id="vhs-static"></div>
+    <div id="scanline"></div>
+    <div id="loading-screen">
+        <div style="float:right;">SP <span style="color:red">●</span></div>
+        <div>PLAY 00:00:96</div>
+        <div id="loading-text" style="margin-top:20px;">> PREPARING...</div>
+        <div id="progress-container"><div id="progress-bar"></div></div>
+        <div style="font-size: 0.7em; margin-top: 10px; color: #0a0;">ENJOY THE SHOW <span class="cursor">_</span></div>
+    </div>
+</div>
+
+
+<div id="app-container">
+    <header> 
+        <span>📹 CINE-LOG 2000</span>
+        <label class="toggle-label">
+            📽️ DOUBLE FEATURE
+            <input type="checkbox" id="noir-toggle">
+        </label>
+    </header>
+    
+    <div class="marquee-box" id="marquee-container">
+        <div id="marquee-text">WELCOME TO THE CINE-LOG 2000. ENJOY THE SHOW!</div>
+    </div>
+
+
+    <div id="auth-section" class="box">
+        <h3>Secure Login</h3>
+        Email: <input type="email" id="login-email" style="width:100%"> 
+        Password: <input type="password" id="login-password" style="width:100%"> 
+        <br><br>
+        <button id="login-btn" style="padding:10px; background:#000080; color:white; border:2px outset #fff; cursor:pointer; width: 100%;">ENTER THEATER</button>
+    </div>
+
+
+    <div id="main-content" style="display:none;">
+        <div class="box" style="overflow: hidden; padding: 5px;">
+            <div style="float: left; width: 60%;">
+                <strong>🏆 PROGRESS:</strong> <span id="movie-count">0</span> / 365
+                <div id="pixel-progress-bg"><div id="pixel-progress-fill"></div></div>
+            </div>
+            <div style="float: right;">
+                <button onclick="logout()" class="ticket-btn">LOGOUT</button>
+                <button onclick="exportData()" class="small-export">💾 EXPORT</button>
+            </div>
+        </div>
+
+
+        <div class="box" style="padding: 5px;">
+            <div class="input-row" style="display:flex; gap:5px; flex-wrap:wrap;">
+                <input type="date" id="movie-date" style="flex:1">
+                <input type="text" id="movie-title" placeholder="Film Title..." style="flex:2">
+                <select id="movie-rating" style="flex:1">
+                    <option value="5">⭐⭐⭐⭐⭐</option>
+                    <option value="4">⭐⭐⭐⭐</option>
+                    <option value="3">⭐⭐⭐</option>
+                    <option value="2">⭐⭐</option>
+                    <option value="1">⭐</option>
+                </select>
+                <button onclick="saveMovie()" style="background:#008000; color:white; border:2px outset #fff; padding:5px; font-weight:bold;">SAVE</button>
+            </div>
+        </div>
+
+
+        <table>
+            <thead>
+                <tr><th style="width:60px">DATE</th><th>TITLE</th><th style="width:90px">RANK</th><th style="width:35px">X</th></tr>
+            </thead>
+            <tbody id="table-body"></tbody>
+        </table>
+    </div>
+</div>
+
+
+<script type="module">
+  import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
+  import { getAuth, signInWithEmailAndPassword, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
+  import { getFirestore, collection, addDoc, query, where, onSnapshot, deleteDoc, doc, orderBy } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+
+
+  const firebaseConfig = {
+    apiKey: "AIzaSyARcsf5jtDzQ-uhcJ3V2nMIVl9JlArWYf8",
+    authDomain: "cinelog-7552d.firebaseapp.com",
+    projectId: "cinelog-7552d",
+    storageBucket: "cinelog-7552d.firebasestorage.app",
+    messagingSenderId: "180492873924",
+    appId: "1:180492873924:web:d059c63c0aca97b327d991"
+  };
+  const app = initializeApp(firebaseConfig);
+  const auth = getAuth(app);
+  const db = getFirestore(app);
+
+
+  // NOIR TOGGLE LOGIC
+  const noirToggle = document.getElementById('noir-toggle');
+  noirToggle.addEventListener('change', () => {
+      document.body.classList.toggle('noir-mode', noirToggle.checked);
+  });
+
+
+  const quotes = ["\"I'm going to make him an offer he can't refuse.\"", "\"May the Force be with you.\"", "\"Bond. James Bond.\"", "\"You're gonna need a bigger boat.\"", "\"Houston, we have a problem.\"", "\"Frankly, my dear, I don't give a damn.\"", "\"Go ahead, make my day.\"", "\"I love the smell of napalm in the morning.\"", "\"I'm king of the world!\"", "\"Show me the money!\"", "\"To infinity and beyond!\"", "\"Why so serious?\"", "\"Wax on, wax off.\"", "\"I see dead people.\"", "\"Here's Johnny!\"", "\"My precious.\"", "\"Hasta la vista, baby.\""];
+  const loaders = ["> POPPING KERNELS...", "> REWINDING TAPES...", "> CLEANING HEADS...", "> PRINTING TICKETS...", "> ADJUSTING TRACKING...", "> DIMMING LIGHTS...", "> RELOADING REELS...", "> BUTTERING POPCORN..."];
+
+
+  document.getElementById('login-btn').addEventListener('click', () => {
+      const email = document.getElementById('login-email').value;
+      const pass = document.getElementById('login-password').value;
+      signInWithEmailAndPassword(auth, email, pass).then(() => {
+          document.getElementById('auth-section').style.display = 'none';
+          const stage = document.getElementById('loading-stage');
+          const bar = document.getElementById('progress-bar');
+          stage.style.display = 'flex';
+          let width = 0;
+          const interval = setInterval(() => {
+              if (width >= 100) {
+                  clearInterval(interval);
+                  setTimeout(() => { stage.style.display = 'none'; document.getElementById('main-content').style.display = 'block'; }, 800);
+              } else {
+                  width += (Math.random() > 0.8 ? 0 : Math.floor(Math.random() * 5) + 1);
+                  if (width > 100) width = 100;
+                  bar.style.width = width + '%';
+                  if(width % 10 === 0) document.getElementById('loading-text').innerText = loaders[Math.floor(Math.random()*loaders.length)];
+              }
+          }, 140); 
+      }).catch(err => alert(err.message));
+  });
+
+
+  window.saveMovie = () => {
+      const title = document.getElementById('movie-title').value;
+      const date = document.getElementById('movie-date').value;
+      const rating = document.getElementById('movie-rating').value;
+      if(title && date) {
+          addDoc(collection(db, "movies"), { uid: auth.currentUser.uid, title, date, rating: parseInt(rating) }).then(() => {
+              document.getElementById('movie-title').value = "";
+              for(let i=0; i<45; i++){
+                  const p = document.createElement('div');
+                  p.className = 'popcorn'; p.innerText = '🍿'; 
+                  p.style.left = (Math.random() * 80 + 10) + '%'; p.style.top = '50%';
+                  p.style.setProperty('--tx-mid', (Math.random() * 300 - 150) + 'px');
+                  p.style.setProperty('--ty-up', (Math.random() * -400 - 100) + 'px');
+                  p.style.setProperty('--tx-final', (Math.random() * 600 - 300) + 'px');
+                  p.style.setProperty('--tr', (Math.random() * 1000) + 'deg');
+                  document.body.appendChild(p);
+                  setTimeout(() => p.remove(), 2200);
+              }
+          });
+      }
+  };
+
+
+  onAuthStateChanged(auth, user => {
+      const mc = document.getElementById('marquee-container');
+      if (user) {
+          document.getElementById('auth-section').style.display = 'none';
+          document.getElementById('main-content').style.display = 'block';
+          const getBatch = () => quotes.sort(() => 0.5 - Math.random()).slice(0, 6).join("   🎬   ");
+          mc.innerHTML = `<marquee scrollamount="4">${getBatch()}</marquee>`;
+          setInterval(() => { mc.firstChild.innerText = getBatch(); }, 30000);
+          const q = query(collection(db, "movies"), where("uid", "==", user.uid), orderBy("date", "desc"));
+          onSnapshot(q, (snapshot) => {
+              const tbody = document.getElementById('table-body');
+              tbody.innerHTML = "";
+              let count = 0;
+              snapshot.forEach(docSnap => {
+                  const m = docSnap.data(); count++;
+                  tbody.innerHTML += `<tr><td>${m.date.substring(5)}</td><td>${m.title}</td><td style="letter-spacing:-2px">${"⭐".repeat(m.rating)}</td><td><button style="border:none;background:none;cursor:pointer;" onclick="deleteEntry('${docSnap.id}')">🗑️</button></td></tr>`;
+              });
+              document.getElementById('movie-count').innerText = count;
+              document.getElementById('pixel-progress-fill').style.width = Math.min((count/365)*100, 100) + '%';
+          });
+      } else {
+          document.getElementById('auth-section').style.display = 'block';
+          document.getElementById('main-content').style.display = 'none';
+          mc.innerHTML = `WELCOME TO THE CINE-LOG 2000. ENJOY THE SHOW!`;
+      }
+  });
+
+
+  window.logout = () => signOut(auth);
+  window.deleteEntry = (id) => { if(confirm("Delete film?")) deleteDoc(doc(db, "movies", id)); };
+</script>
+</body>
+</html>
