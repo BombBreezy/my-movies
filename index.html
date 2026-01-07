@@ -1,0 +1,42 @@
+﻿<script type="module">
+  // ... (Your existing Firebase imports and config) ...
+  const OMDB_API_KEY = "ccc0f514"; 
+
+
+  // NEW: THE RESTORED MOVIE INFO FUNCTION
+  window.showInfo = async (title) => {
+      try {
+          // Visual feedback that we are "Seeking"
+          const marquee = document.getElementById('main-marquee');
+          const originalText = marquee.innerText;
+          marquee.innerText = `> ACCESSING DATABASE FOR: ${title.toUpperCase()}...`;
+
+
+          const response = await fetch(`https://www.omdbapi.com/?t=${encodeURIComponent(title)}&apikey=${OMDB_API_KEY}`);
+          const data = await response.json();
+
+
+          if(data.Response === "True") {
+              alert(
+                  `📽️ FILM DATA RETRIEVED:\n\n` +
+                  `TITLE: ${data.Title}\n` +
+                  `YEAR: ${data.Year}\n` +
+                  `GENRE: ${data.Genre}\n` +
+                  `DIRECTOR: ${data.Director}\n\n` +
+                  `PLOT: ${data.Plot}\n\n` +
+                  `IMDB RATING: ${data.imdbRating}`
+              );
+          } else {
+              alert("⚠️ ERROR: Film not found in database.");
+          }
+          marquee.innerText = originalText;
+      } catch (err) {
+          alert("⚠️ CONNECTION ERROR: Database offline.");
+      }
+  };
+
+
+  // ... (Inside your onSnapshot where the table is built) ...
+  // Ensure the Title cell looks like this:
+  // <td><span style="color:blue; text-decoration:underline; cursor:pointer;" onclick="showInfo('${m.title}')">${m.title}</span></td>
+</script>
